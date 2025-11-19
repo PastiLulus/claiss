@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { defaultModalHttpClient } from '@/lib/modal-client-http';
-import { put } from '@vercel/blob';
+import { getStorageAdapter } from '@/lib/storage/storage-factory';
 import type { Scene } from '@/lib/scene-types';
 
 export const maxDuration = 60;
@@ -83,26 +83,27 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
-    console.log(`[VIDEO-MERGE-API] Uploading merged video to Blob...`);
+    console.log(`[VIDEO-MERGE-API] Uploading merged video to storage...`);
     const mergedVideoId = videoId || `final-${Date.now()}`;
 
     const videoBuffer = Buffer.from(mergeResult.video_bytes!);
 
-    const blob = await put(`videos/${mergedVideoId}.mp4`, videoBuffer, {
+    const storage = getStorageAdapter();
+    const uploadResult = await storage.upload(`videos/${mergedVideoId}.mp4`, videoBuffer, {
       access: 'public',
       contentType: 'video/mp4',
-      addRandomSuffix: true 
+      addRandomSuffix: true
     });
 
     const duration = Date.now() - startTime;
 
     console.log(`[VIDEO-MERGE-API] ✅ Merge completed in ${duration}ms`);
-    console.log(`[VIDEO-MERGE-API] Final video: ${blob.url}`);
+    console.log(`[VIDEO-MERGE-API] Final video: ${uploadResult.url}`);
 
     return NextResponse.json({
       success: true,
-      videoUrl: blob.url,
-      videoId: mergedVideoId,
+      videoUrl: uploadResult.url,
+      videoId: uploadResult.videoId,
       duration: `${duration}ms`,
       mergeTime: mergeResult.duration,
       sceneCount: validScenes.length

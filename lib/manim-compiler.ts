@@ -6,9 +6,9 @@ import {
   readdirSync,
 } from "fs";
 import path from "path";
-import { put } from "@vercel/blob";
 import { compileAnimationWithModal } from "./modal-client-http";
 import { generateSimpleVideoId } from "./simple-video-id";
+import { getStorageAdapter } from "./storage/storage-factory";
 
 export interface ManimCompilationResult {
   success: boolean;
@@ -84,32 +84,33 @@ async function compileWithModal(
       const buffer = Buffer.from(result.video_bytes);
 
       console.log(
-        `[MANIM-COMPILER] 📤 Uploading video to Vercel Blob... (${buffer.length} bytes)`,
+        `[MANIM-COMPILER] 📤 Uploading video to storage... (${buffer.length} bytes)`,
       );
 
       try {
+        const storage = getStorageAdapter();
         const videoId = generateSimpleVideoId();
-        const blob = await put(`videos/${videoId}.mp4`, buffer, {
+        const uploadResult = await storage.upload(`videos/${videoId}.mp4`, buffer, {
           access: "public",
           contentType: "video/mp4",
         });
 
-        console.log(`[MANIM-COMPILER] ✅ Video uploaded to Blob: ${blob.url}`);
-        console.log(`[MANIM-COMPILER] Video ID: ${videoId}`);
+        console.log(`[MANIM-COMPILER] ✅ Video uploaded: ${uploadResult.url}`);
+        console.log(`[MANIM-COMPILER] Video ID: ${uploadResult.videoId}`);
 
         return {
           success: true,
-          videoPath: blob.pathname,
-          videoUrl: blob.url,
-          videoId: videoId,
+          videoPath: uploadResult.pathname,
+          videoUrl: uploadResult.url,
+          videoId: uploadResult.videoId,
           logs: result.logs,
           duration: result.duration,
           compilationType: "modal",
         };
-      } catch (blobError) {
+      } catch (storageError) {
         console.error(
-          `[MANIM-COMPILER] ❌ Failed to upload to Blob, falling back to /tmp:`,
-          blobError,
+          `[MANIM-COMPILER] ❌ Failed to upload to storage, falling back to /tmp:`,
+          storageError,
         );
 
         // Fallback to original /tmp approach if Blob fails
@@ -138,7 +139,7 @@ async function compileWithModal(
 
           return {
             success: false,
-            error: `Failed to save video (Blob: ${blobError instanceof Error ? blobError.message : String(blobError)}, tmp: ${tmpError instanceof Error ? tmpError.message : String(tmpError)})`,
+            error: `Failed to save video (Storage: ${storageError instanceof Error ? storageError.message : String(storageError)}, tmp: ${tmpError instanceof Error ? tmpError.message : String(tmpError)})`,
             logs: result.logs,
             duration: result.duration,
             compilationType: "modal",
@@ -209,32 +210,33 @@ async function compileWithLocal(
         const videoBuffer = readFileSync(manimOutputPath);
 
         console.log(
-          `[MANIM-COMPILER] 📤 Uploading local video to Vercel Blob... (${videoBuffer.length} bytes)`,
+          `[MANIM-COMPILER] 📤 Uploading local video to storage... (${videoBuffer.length} bytes)`,
         );
 
+        const storage = getStorageAdapter();
         const videoId = generateSimpleVideoId();
-        const blob = await put(`videos/${videoId}.mp4`, videoBuffer, {
+        const uploadResult = await storage.upload(`videos/${videoId}.mp4`, videoBuffer, {
           access: "public",
           contentType: "video/mp4",
         });
 
         console.log(
-          `[MANIM-COMPILER] ✅ Local video uploaded to Blob: ${blob.url}`,
+          `[MANIM-COMPILER] ✅ Local video uploaded: ${uploadResult.url}`,
         );
-        console.log(`[MANIM-COMPILER] Video ID: ${videoId}`);
+        console.log(`[MANIM-COMPILER] Video ID: ${uploadResult.videoId}`);
 
         return {
           success: true,
-          videoPath: blob.pathname,
-          videoUrl: blob.url,
-          videoId: videoId,
+          videoPath: uploadResult.pathname,
+          videoUrl: uploadResult.url,
+          videoId: uploadResult.videoId,
           logs: output,
           compilationType: "local",
         };
-      } catch (blobError) {
+      } catch (storageError) {
         console.error(
-          `[MANIM-COMPILER] ❌ Failed to upload local video to Blob, falling back to /tmp:`,
-          blobError,
+          `[MANIM-COMPILER] ❌ Failed to upload local video to storage, falling back to /tmp:`,
+          storageError,
         );
 
         try {
@@ -263,7 +265,7 @@ async function compileWithLocal(
 
           return {
             success: false,
-            error: `Failed to save local video (Blob: ${blobError instanceof Error ? blobError.message : String(blobError)}, tmp: ${tmpError instanceof Error ? tmpError.message : String(tmpError)})`,
+            error: `Failed to save local video (Storage: ${storageError instanceof Error ? storageError.message : String(storageError)}, tmp: ${tmpError instanceof Error ? tmpError.message : String(tmpError)})`,
             logs: output,
             compilationType: "local",
           };

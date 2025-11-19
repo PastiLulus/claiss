@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { list } from "@vercel/blob";
+import { getStorageAdapter } from "@/lib/storage/storage-factory";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
       console.log(`[VIDEO-API] Looking for specific video ID: ${videoId}`);
 
       try {
-        const { blobs } = await list({
+        const storage = getStorageAdapter();
+        const { blobs } = await storage.list({
           prefix: `videos/${videoId}.mp4`,
           limit: 1,
         });
@@ -20,13 +21,13 @@ export async function GET(request: NextRequest) {
         if (blobs.length > 0) {
           const targetVideo = blobs[0];
           console.log(
-            `[VIDEO-API] ✅ Found video by ID in Blob: ${targetVideo.url}`,
+            `[VIDEO-API] ✅ Found video by ID in storage: ${targetVideo.url}`,
           );
           return NextResponse.redirect(targetVideo.url);
         }
       } catch {
         console.log(
-          `[VIDEO-API] Blob storage unavailable for video ${videoId}, checking /tmp fallback`,
+          `[VIDEO-API] Storage unavailable for video ${videoId}, checking /tmp fallback`,
         );
       }
 
@@ -52,15 +53,16 @@ export async function GET(request: NextRequest) {
         return new NextResponse("Video not found", { status: 404 });
       }
     } else {
-      console.log("[VIDEO-API] Looking for latest video in Blob storage...");
+      console.log("[VIDEO-API] Looking for latest video in storage...");
 
-      const { blobs } = await list({
+      const storage = getStorageAdapter();
+      const { blobs } = await storage.list({
         prefix: "videos/",
         limit: 10,
       });
 
       if (blobs.length === 0) {
-        console.log("[VIDEO-API] No videos found in Blob storage");
+        console.log("[VIDEO-API] No videos found in storage");
 
         const { existsSync, createReadStream, statSync } = await import("fs");
         const videoPath = "/tmp/latest.mp4";
@@ -110,7 +112,8 @@ export async function HEAD(request: NextRequest) {
       );
 
       try {
-        const { blobs } = await list({
+        const storage = getStorageAdapter();
+        const { blobs } = await storage.list({
           prefix: `videos/${videoId}.mp4`,
           limit: 1,
         });
@@ -118,7 +121,7 @@ export async function HEAD(request: NextRequest) {
         if (blobs.length > 0) {
           const targetVideo = blobs[0];
           console.log(
-            `[VIDEO-API] HEAD: Found video by ID in Blob - ${targetVideo.size} bytes`,
+            `[VIDEO-API] HEAD: Found video by ID in storage - ${targetVideo.size} bytes`,
           );
           return new NextResponse(null, {
             status: 200,
@@ -132,7 +135,7 @@ export async function HEAD(request: NextRequest) {
         }
       } catch {
         console.log(
-          `[VIDEO-API] HEAD: Blob storage unavailable, checking /tmp fallback`,
+          `[VIDEO-API] HEAD: Storage unavailable, checking /tmp fallback`,
         );
       }
 
@@ -161,7 +164,8 @@ export async function HEAD(request: NextRequest) {
       console.log("[VIDEO-API] HEAD request - checking for latest video...");
 
       try {
-        const { blobs } = await list({
+        const storage = getStorageAdapter();
+        const { blobs } = await storage.list({
           prefix: "videos/",
           limit: 1,
         });
@@ -169,7 +173,7 @@ export async function HEAD(request: NextRequest) {
         if (blobs.length > 0) {
           const latestVideo = blobs[0];
           console.log(
-            `[VIDEO-API] HEAD: Latest video found in Blob - ${latestVideo.size} bytes`,
+            `[VIDEO-API] HEAD: Latest video found in storage - ${latestVideo.size} bytes`,
           );
 
           return new NextResponse(null, {
@@ -184,7 +188,7 @@ export async function HEAD(request: NextRequest) {
         }
       } catch {
         console.log(
-          `[VIDEO-API] HEAD: Blob storage unavailable, checking /tmp fallback`,
+          `[VIDEO-API] HEAD: Storage unavailable, checking /tmp fallback`,
         );
       }
 
