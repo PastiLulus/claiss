@@ -40,9 +40,63 @@ GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_api_key_here
 
 # Modal.com Token (required for Manim video compilation)
 MODAL_TOKEN_SECRET=your_modal_token_here
+```
 
-# Vercel Blob Storage Token (required for video storage)
+#### Storage Configuration
+
+The application supports multiple storage providers for video files. You can choose between Vercel Blob, S3-compatible storage, or automatic selection with fallback.
+
+##### Option 1: Vercel Blob Storage (Default)
+
+```bash
+# Storage provider (optional, defaults to "auto")
+STORAGE_PROVIDER=vercel-blob
+
+# Vercel Blob Storage Token
 BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
+```
+
+##### Option 2: S3-Compatible Storage
+
+Supports AWS S3, DigitalOcean Spaces, Backblaze B2, and any S3-compatible service.
+
+```bash
+# Storage provider
+STORAGE_PROVIDER=s3
+
+# S3 Configuration
+S3_ENDPOINT=https://nyc3.digitaloceanspaces.com  # Optional for AWS S3
+S3_REGION=nyc3  # e.g., us-east-1 for AWS, nyc3 for DO Spaces
+S3_ACCESS_KEY_ID=your_access_key
+S3_SECRET_ACCESS_KEY=your_secret_key
+S3_BUCKET=your_bucket_name
+
+# Optional: Custom public URL (e.g., CDN URL)
+S3_PUBLIC_URL_BASE=https://cdn.yourdomain.com
+
+# Optional: Force path-style URLs (default: true)
+S3_FORCE_PATH_STYLE=true
+```
+
+##### Option 3: Auto Mode with Fallback (Recommended)
+
+Automatically uses available storage provider(s) with intelligent fallback:
+- If both configured: Vercel Blob primary, S3 fallback
+- If only one configured: Uses that provider
+- If none configured: Defaults to Vercel Blob
+
+```bash
+# Storage provider (default)
+STORAGE_PROVIDER=auto
+
+# Configure one or both storage providers
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
+
+# And/or S3
+S3_ACCESS_KEY_ID=your_access_key
+S3_SECRET_ACCESS_KEY=your_secret_key
+S3_BUCKET=your_bucket_name
+S3_REGION=your_region
 ```
 
 #### Optional Variables
@@ -251,10 +305,29 @@ Dokploy automatically provisions SSL certificates via Let's Encrypt:
 ### Data Persistence
 
 This application is stateless. Data is stored in:
-- **Vercel Blob**: Video files and media
+- **Storage Provider**: Video files and media (Vercel Blob, S3, or both)
+  - Configure via `STORAGE_PROVIDER` environment variable
+  - Supports automatic fallback between providers
 - **External APIs**: Modal, Google AI
 
-Ensure these services have proper backup strategies.
+Ensure your chosen storage service(s) have proper backup strategies.
+
+#### Storage Provider Options
+
+1. **Vercel Blob** (Default)
+   - Automatic CDN distribution
+   - Generous free tier
+   - No additional configuration needed
+
+2. **S3-Compatible Storage**
+   - AWS S3, DigitalOcean Spaces, Backblaze B2
+   - More control over storage costs
+   - Can use custom CDN configuration
+
+3. **Dual Provider with Fallback** (Recommended for Production)
+   - Configure both Vercel Blob and S3
+   - Automatic failover if primary storage fails
+   - Higher reliability
 
 ### Configuration Backup
 
@@ -295,7 +368,21 @@ Copy this template to Dokploy environment settings:
 # Required
 GOOGLE_GENERATIVE_AI_API_KEY=
 MODAL_TOKEN_SECRET=
+
+# Storage Configuration (Choose one or both)
+STORAGE_PROVIDER=auto  # vercel-blob | s3 | auto
+
+# Option 1: Vercel Blob
 BLOB_READ_WRITE_TOKEN=
+
+# Option 2: S3-Compatible Storage
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+S3_BUCKET=
+S3_REGION=
+S3_ENDPOINT=  # Optional, for non-AWS S3
+S3_PUBLIC_URL_BASE=  # Optional, custom CDN URL
+S3_FORCE_PATH_STYLE=true  # Optional, default: true
 
 # Optional
 CONTEXT7=
