@@ -13,6 +13,11 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Skip authentication for health check endpoint
+  if (pathname === '/api/health') {
+    return NextResponse.next();
+  }
+
   // Only protect API routes
   if (pathname.startsWith('/api/')) {
     const apiKey = process.env.API_SECRET_KEY;
