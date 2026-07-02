@@ -1,348 +1,114 @@
-# Claiss API 🎬✨
+<p align="center">
+  <samp><b>Next.js + Vercel AI SDK + Google Gemini + Modal.com + Context7 MCP</b></samp>
+</p>
 
-> **REST API Microservice** - AI-powered educational video generation using Manim animations
+<p align="center">
+  <a href="https://github.com/PastiLulus/claiss/actions"><img src="https://img.shields.io/badge/Build-passing-brightgreen?style=flat-square" alt="Build Status"></a>
+  <a href="https://github.com/PastiLulus/claiss/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>
+  <a href="https://nextjs.org"><img src="https://img.shields.io/badge/Next.js-14.2-black?style=flat-square" alt="Next.js"></a>
+  <a href="https://modal.com"><img src="https://img.shields.io/badge/Modal.com-Serverless-green?style=flat-square" alt="Modal"></a>
+</p>
 
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
-[![Manim](https://img.shields.io/badge/Manim-0.18.1-blue)](https://www.manim.community/)
+# claiss-api
 
-Transform text prompts into stunning visual learning content via simple REST API calls.
+<p align="center">
+  <b>claiss-api is an AI-powered REST microservice for self-hosted educational platforms that automates Manim animation generation and serverless video compilation.</b>
+  <br>
+  Turn natural language prompts into professional, high-fidelity math and science animations via modular scene rendering and cloud storage failovers.
+</p>
 
-## ✨ Features
+---
 
-- 🤖 **AI-Powered Scene Generation** - Generate Manim code from natural language using Google Gemini
-- ⚡ **Serverless Compilation** - Fast Manim rendering via Modal.com
-- 🗄️ **Flexible Storage** - S3-compatible storage with automatic Vercel Blob fallback
-- 🔐 **API Key Authentication** - Simple bearer token auth for secure access
-- 🚀 **Scene-Based Workflow** - Compile individual scenes, then merge into final video
-- 📊 **Health Monitoring** - Built-in health check endpoint
-- 🐳 **Docker Ready** - Optimized for containerized deployment
+```text
+$ curl -X POST https://api.claiss.com/api/video-generator-scene \
+    -H "Authorization: Bearer $API_SECRET_KEY" \
+    -d '{ "videoId": "v-math-01", "messages": [{"role": "user", "content": "Explain binary search"}] }'
 
-## 🏗️ Architecture
+[STREAM] Initiating generation...
+[MCP] Connecting to Context7 Manim MCP Server... Connected.
+[AI]  Synthesizing Manim Scene: BinarySearchAnimation (Google Gemini-2.5-Pro)
+[AI]  Found 3 relevant docs in Context7.
+[AI]  Scene code written to scene-01.py.
+[MODAL] Dispatching compilation to classia-manim-compiler (Serverless CPU/GPU)...
+[MODAL] Rendering frame 0 to 120... Done (1.8s)
+[S3] Uploading binary-search-scene-01.mp4... Done (0.4s)
+[SUCCESS] Scene generated and compiled!
 
-```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │ REST API Calls
-       │ (Bearer Token Auth)
-       ▼
-┌─────────────────────────────┐
-│   Claiss API Service        │
-│  ┌────────────────────────┐ │
-│  │  API Key Middleware    │ │
-│  └────────────────────────┘ │
-│  ┌────────────────────────┐ │
-│  │  API Routes            │ │
-│  │  • /health             │ │
-│  │  • /scene-compile      │ │
-│  │  • /video-merge        │ │
-│  │  • /videos             │ │
-│  │  • /scene-operations   │ │
-│  └────────────────────────┘ │
-└──────┬──────────────────┬───┘
-       │                  │
-       ▼                  ▼
-┌──────────────┐   ┌──────────────┐
-│  Modal.com   │   │   Storage    │
-│   (Manim)    │   │  S3 Primary  │
-│              │   │  Blob Backup │
-└──────────────┘   └──────────────┘
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+ and pnpm
-- [Google AI API Key](https://makersuite.google.com/app/apikey)
-- [Modal.com Account](https://modal.com) (free tier available)
-- S3-compatible storage (DigitalOcean Spaces, AWS S3, etc.) OR [Vercel Blob](https://vercel.com/docs/storage/vercel-blob)
-
-### Installation
-
-1. **Clone and checkout the api-only branch**
-   ```bash
-   git clone https://github.com/HoltzTomas/classia-frontend.git
-   cd classia-frontend
-   git checkout api-only
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
-
-3. **Configure environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` with your credentials:
-   ```bash
-   # API Authentication (generate with: openssl rand -base64 32)
-   API_SECRET_KEY=your_secure_random_key_here
-   
-   # Google AI for scene generation
-   GOOGLE_GENERATIVE_AI_API_KEY=your_google_key
-   
-   # Modal.com for Manim compilation
-   MODAL_TOKEN_SECRET=your_modal_token
-   
-   # Storage: S3-compatible (recommended)
-   STORAGE_PROVIDER=s3
-   S3_ENDPOINT=https://sgp1.digitaloceanspaces.com
-   S3_REGION=sgp1
-   S3_ACCESS_KEY_ID=your_key
-   S3_SECRET_ACCESS_KEY=your_secret
-   S3_BUCKET=your-bucket
-   S3_FORCE_PATH_STYLE=true
-   ```
-
-4. **Deploy Modal.com service**
-   ```bash
-   pip install modal
-   modal token new
-   modal deploy modal_manim.py
-   ```
-
-5. **Start the API server**
-   ```bash
-   pnpm dev
-   ```
-
-   API is now running at `http://localhost:3000` 🎉
-
-## 📖 API Usage
-
-### Health Check
-
-```bash
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-  http://localhost:3000/api/health
-```
-
-### Compile a Scene
-
-```bash
-curl -X POST http://localhost:3000/api/scene-compile \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mode": "single",
-    "scene": {
-      "id": "scene-1",
-      "name": "Bubble Sort",
-      "code": "from manim import *\n\nclass BubbleSort(Scene):\n    def construct(self):\n        text = Text(\"Bubble Sort\")\n        self.play(Write(text))\n        self.wait()",
-      "order": 0,
-      "status": "pending"
-    }
-  }'
-```
-
-### Merge Scenes into Final Video
-
-```bash
-curl -X POST http://localhost:3000/api/video-merge \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "scenes": [
-      {
-        "id": "scene-1",
-        "order": 0,
-        "status": "compiled",
-        "videoUrl": "https://your-storage.com/video.mp4"
-      }
-    ]
-  }'
-```
-
-### Download Video
-
-```bash
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-  http://localhost:3000/api/videos?id=video-123 \
-  -o output.mp4
-```
-
-**📚 Full API documentation: [API-DOCUMENTATION.md](./API-DOCUMENTATION.md)**
-
-## 🗄️ Storage Configuration
-
-### S3-Compatible Storage (Recommended)
-
-Supports DigitalOcean Spaces, AWS S3, Backblaze B2, and any S3-compatible service.
-
-**Features:**
-- ✅ 4x retry logic with exponential backoff
-- ✅ Automatic failover to Vercel Blob
-- ✅ Multi-region support
-- ✅ Path-style and virtual-hosted URLs
-
-```bash
-STORAGE_PROVIDER=s3
-S3_ENDPOINT=https://sgp1.digitaloceanspaces.com
-S3_REGION=sgp1
-S3_ACCESS_KEY_ID=your_key
-S3_SECRET_ACCESS_KEY=your_secret
-S3_BUCKET=your-bucket
-S3_FORCE_PATH_STYLE=true
-```
-
-### Vercel Blob Storage
-
-```bash
-STORAGE_PROVIDER=vercel-blob
-BLOB_READ_WRITE_TOKEN=your_token
-```
-
-### Auto Mode (Recommended for Production)
-
-Automatically uses available storage with intelligent fallback:
-- Primary: Vercel Blob (if configured)
-- Fallback: S3 (if configured)
-
-```bash
-STORAGE_PROVIDER=auto
-# Configure both S3 and Vercel Blob
-```
-
-## 🐳 Docker Deployment
-
-```bash
-# Build the image
-docker build -t claiss-api .
-
-# Run the container
-docker run -p 3000:3000 \
-  -e API_SECRET_KEY=your_key \
-  -e GOOGLE_GENERATIVE_AI_API_KEY=your_key \
-  -e MODAL_TOKEN_SECRET=your_token \
-  -e STORAGE_PROVIDER=s3 \
-  -e S3_ENDPOINT=https://sgp1.digitaloceanspaces.com \
-  -e S3_REGION=sgp1 \
-  -e S3_ACCESS_KEY_ID=your_key \
-  -e S3_SECRET_ACCESS_KEY=your_secret \
-  -e S3_BUCKET=your-bucket \
-  claiss-api
-```
-
-## 📁 Project Structure
-
-```
-claiss-api/
-├── app/api/              # API route handlers
-│   ├── health/           # Health check endpoint
-│   ├── scene-compile/    # Scene compilation
-│   ├── video-merge/      # Video merging
-│   ├── videos/           # Video retrieval
-│   └── scene-operations/ # Scene CRUD operations
-├── lib/
-│   ├── storage/          # Storage adapters (S3, Vercel Blob)
-│   ├── manim-compiler.ts # Manim compilation logic
-│   ├── scene-compiler.ts # Scene compilation
-│   ├── scene-manager.ts  # Scene management
-│   └── modal-client*.ts  # Modal.com API clients
-├── middleware.ts         # API authentication
-├── modal_manim.py        # Modal.com Manim service
-└── .env                  # Environment configuration
-```
-
-## 🔐 Security
-
-### API Key Authentication
-
-All endpoints require authentication using a Bearer token:
-
-```bash
-Authorization: Bearer YOUR_API_KEY
-```
-
-Generate a secure API key:
-```bash
-openssl rand -base64 32
-```
-
-### Production Recommendations
-
-- ✅ Use strong, random API keys (32+ characters)
-- ✅ Rotate API keys periodically
-- ✅ Use HTTPS in production
-- ✅ Configure CORS appropriately
-- ✅ Monitor API usage via `/api/health`
-- ✅ Set up rate limiting if needed
-
-## 📊 Monitoring
-
-The `/api/health` endpoint provides real-time service status:
-
-```json
 {
-  "status": "healthy",
-  "timestamp": "2024-01-01T00:00:00.000Z",
-  "responseTime": "5ms",
-  "dependencies": {
-    "storage": {
-      "provider": "s3",
-      "available": { "s3": true, "vercelBlob": false }
-    },
-    "modal": { "configured": true, "enabled": true },
-    "googleAI": { "configured": true }
+  "success": true,
+  "scene": {
+    "id": "scene-binary-01",
+    "name": "Binary Search Intro",
+    "videoUrl": "https://s3.amazonaws.com/claiss-bucket/videos/binary-search-scene-01.mp4",
+    "duration": 4.5
   }
 }
 ```
 
-## 🛠️ Development
+---
+
+## Why claiss-api?
+
+| Feature | Traditional Manim Pipeline | claiss-api Pipeline |
+| :--- | :--- | :--- |
+| **Authoring** | Manual Python scripting & long iteration | AI-driven prompt-to-scene via Gemini |
+| **Accuracy** | Frequent compilation errors | Guided by Context7 Manim MCP Server |
+| **Rendering** | Heavy local Python/FFmpeg rendering | Lightning-fast Serverless on Modal.com |
+| **Pipeline** | Monolithic single-file builds | Independent modular Scene compilation |
+
+## Minimum Viable Knowledge
+
+- ✅ **Modular Scene Editing**: Never recompile the entire video; regenerate individual scenes and merge them on demand.
+- ✅ **MCP Grounding**: The generator utilizes `Context7` (Manim API context) to prevent AI code hallucination and syntax errors.
+- ✅ **Automatic Failover**: Configure both S3 and Vercel Blob; `STORAGE_PROVIDER=auto` falls back gracefully if S3 fails.
+
+## Quick Start
 
 ```bash
-# Development server with hot reload
+# Clone the repository
+git clone https://github.com/PastiLulus/claiss.git && cd claiss
+
+# Install Node.js dependencies
+pnpm install
+
+# Deploy the serverless Manim compilation engine
+pip install modal && modal token new && modal deploy modal_manim.py
+
+# Launch development API server
 pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
-
-# Lint code
-pnpm lint
 ```
 
-## 📝 API Endpoints
+## Project Architecture
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/health` | GET | Health check and service status |
-| `/api/scene-compile` | POST | Compile Manim scenes (single/multiple) |
-| `/api/video-merge` | POST | Merge compiled scenes into final video |
-| `/api/videos` | GET | Retrieve videos from storage |
-| `/api/scene-operations` | GET/POST/DELETE | CRUD operations for scenes |
-| `/api/video-generator-scene` | POST | AI-powered scene generation |
+```text
+ Client Request ──→ Next.js API Middleware (Bearer Auth)
+                           │
+             ┌─────────────┴─────────────┐
+             ▼                           ▼
+  AI Scene Gen API              Scene Compile API
+  (Gemini-2.5-Pro &              (Modal.com Serverless)
+   Context7 MCP)                         │
+             │                           ▼
+             └───────────────────→ Cloud Storage
+                             (S3 / Vercel Blob)
+```
 
-## 🤝 Contributing
+## Core API Endpoints
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📜 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Manim Community](https://www.manim.community/) for the animation library
-- [Modal.com](https://modal.com) for serverless Python execution
-- [Google AI](https://ai.google.dev/) for Gemini API
-- [DigitalOcean Spaces](https://www.digitalocean.com/products/spaces) for S3-compatible storage
-
-## 📞 Support
-
-- 🐛 [Report a Bug](https://github.com/HoltzTomas/classia-frontend/issues)
-- 💡 [Request a Feature](https://github.com/HoltzTomas/classia-frontend/issues)
-- 💬 [Discussions](https://github.com/HoltzTomas/classia-frontend/discussions)
+| Endpoint | Method | Input (JSON) / Notes |
+| :--- | :--- | :--- |
+| `/api/health` | GET | Real-time monitoring and dependency statuses |
+| `/api/video-generator-scene` | POST | Generates scene code via LLM & Context7 MCP |
+| `/api/scene-compile` | POST | Compiles standalone Manim scene code on Modal |
+| `/api/video-merge` | POST | Concatenates compiled scene videos into final output |
+| `/api/videos` | GET | Retrieves compiled videos from cloud storage |
 
 ---
 
-**Built with ❤️ for self-hosted deployments**
+<p align="center">
+  <a href="./API-DOCUMENTATION.md">API Docs</a> · <a href="./VIDEO_GENERATION_FLOW.md">Video Generation Flow</a> · <a href="./DEPLOYMENT.md">Deployment Guide</a>
+</p>
 
-**API-only branch** - No frontend dependencies, ~70% smaller than full-stack version
+<p align="center">
+  <sub>Licensed under the MIT License</sub>
+</p>
